@@ -1,4 +1,4 @@
-name: GCP Deploy
+name: Deploy to Google Cloud Run
 
 on:
   push:
@@ -8,16 +8,20 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v1
       with:
-        version: 'latest'
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Deploy to App Engine
-      run: |
-        gcloud app deploy app.yaml --quiet
+    - name: Deploy to Cloud Run
+      uses: google-github-actions/deploy-cloudrun@v1
+      with:
+        service: ncaa-predictor
+        image: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ncaa-predictor
+        region: us-west1
+    
