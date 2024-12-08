@@ -1,0 +1,33 @@
+from flask import Flask, request, jsonify
+from google.cloud import bigquery
+
+app = Flask(__name__)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.json
+    season = data['season']
+    team1 = data['team1']
+    team2 = data['team2']
+
+    # Query BigQuery to get the trained model's predictions
+    client = bigquery.Client()
+    query = f"""
+    SELECT
+      predicted_label,
+      probabilities
+    FROM ML.PREDICT(MODEL `bracketology.ncaa_model_updated`,
+      (
+        SELECT
+          *
+        FROM `bracketology.training_features`
+        WHERE season = {season} AND
+          (school_ncaa = '{team1}' OR school_ncaa = '{team2}')
+      ))
+    """
+    query_job = client.query(query)
+    result = [dict(row) for row in query_job]
+    return jsonify(result)
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
